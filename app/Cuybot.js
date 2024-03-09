@@ -1,6 +1,6 @@
 const TelegramBot = require("node-telegram-bot-api");
 const commands = require("../libs/commands");
-const helpText = require("../libs/constant");
+const { helpText, invalidCommand } = require("../libs/constant");
 
 class Cuybot extends TelegramBot {
   constructor(token, options) {
@@ -9,24 +9,23 @@ class Cuybot extends TelegramBot {
       const isCommand = Object.values(commands).some((keyword) =>
         keyword.test(data.text)
       );
+
       if (!isCommand) {
-        console.log("Invalid commands executed by " + data.from.username);
-        this.sendMessage(
-          data.from.id,
-          "Command unavailable, please use !help to use command",
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text: "Help",
-                    callback_data: "go_to_help",
-                  },
-                ],
-              ],
-            },
-          }
+        console.log(
+          `Invalid Command Executed By ${data.from.username} => ${data.text}`
         );
+        this.sendMessage(data.from.id, invalidCommand, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "Help",
+                  callback_data: "go_to_help",
+                },
+              ],
+            ],
+          },
+        });
         this.on("callback_query", (callback) => {
           const callbackName = callback.data;
           if (callbackName == "go_to_help") {
@@ -37,10 +36,12 @@ class Cuybot extends TelegramBot {
     });
   }
 
+  getAllCommands() {}
+
   getHelp() {
     this.onText(commands.help, async (data) => {
       const botProfile = await this.getMe();
-      this.sendMessage(data.from.id, helpText(botProfile));
+      this.sendMessage(data.from.id, helpText);
     });
   }
 
@@ -52,8 +53,11 @@ class Cuybot extends TelegramBot {
 
   // listener for command  message
   getGreeting() {
-    this.onText(/^!halo$/, (data) => {
-      this.sendMessage(data.from.id, "halo juga sayang! 🤗 ");
+    this.onText(commands.halo, (data) => {
+      this.sendMessage(
+        data.from.id,
+        `halo juga ${data.from.first_name} sayangku! mau ngapain hari ini?🤗 `
+      );
     });
   }
 
@@ -76,7 +80,7 @@ class Cuybot extends TelegramBot {
   }
 
   getQuotes() {
-    this.onText(commands.quote, async (data) => {
+    this.onText(commands.quotes, async (data) => {
       const quoteEndpoint = "https://api.kanye.rest/";
 
       try {
@@ -118,7 +122,7 @@ class Cuybot extends TelegramBot {
   getEqInfo() {
     const quakeEndpoint = "https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json";
     try {
-      this.onText(commands.quake, async (data) => {
+      this.onText(commands.quakes, async (data) => {
         const waitMsg = await this.sendMessage(
           data.from.id,
           "Mohon tunggu sebentar.. 🙏"
